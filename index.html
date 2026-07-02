@@ -343,7 +343,7 @@ table.heat tbody tr.hidden{ display:none; }
 <div class="wire-top">
   <div class="wire-eyebrow">MediaHQ — Internal / PR Tracker</div>
   <h1 class="wire-title">Release Wire</h1>
-  <p class="wire-sub">Average sent releases per calendar month, calculated across each account's active lifetime (up to the last three years). Newer accounts are averaged only over the months they have been active, and the data now includes sent releases only.</p>
+  <p class="wire-sub">Average sent releases per calendar month, calculated across each account's active lifetime (up to the last three years). Newer accounts are averaged only over the months they have been active.</p>
   <div class="wire-stats">
     <div class="wire-stat"><b id="statAccounts">–</b><span>Active accounts</span></div>
     <div class="wire-stat"><b id="statYears">3</b><span>Max years</span></div>
@@ -411,7 +411,6 @@ accounts.forEach(acc=>{
   acc.total = acc.counts.reduce((a,b)=>a+b,0);
   acc.rowMax = Math.max(...acc.counts, 1);
 
-  // Treat months before the first sent release as "not yet active", not zero-activity months.
   // This prevents newer accounts from having their averages artificially reduced.
   acc.firstActiveIdx = acc.counts.findIndex(v => v > 0);
   acc.activeMonths = acc.firstActiveIdx >= 0 ? (acc.counts.length - acc.firstActiveIdx) : 0;
@@ -645,7 +644,7 @@ function openPanel(acc){
     note.className = 'note';
     let text = '';
     if(hot.length && quiet.length){
-      text = 'Busiest in ' + hot.map(h=>calMonthName(h.i)).join(', ') + ' — good windows to build on momentum. Quietest in ' + quiet.map(q=>calMonthName(q.i)).join(', ') + ' — worth a check-in or offer if the goal is reactivation.';
+      text = 'Busiest in ' + hot.map(h=>calMonthName(h.i)).join(', ') + ' — Good time for MediaHQ Pro. Quietest in ' + quiet.map(q=>calMonthName(q.i)).join(', ') + ' — May not engage meaningfully with PR Tracker during this time.';
     } else if(hot.length){
       text = 'Busiest in ' + hot.map(h=>calMonthName(h.i)).join(', ') + '. No calendar month stands out as unusually quiet.';
     } else {
