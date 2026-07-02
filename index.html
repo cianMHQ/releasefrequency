@@ -159,15 +159,14 @@ table.heat thead th{
   background:var(--card);
   z-index:5;
   border-bottom:1px solid var(--line);
-  padding:8px 4px;
-  font-weight:500;
+  padding:10px 6px;
+  font-weight:600;
   color:var(--text-dim);
-  writing-mode:vertical-rl;
-  text-orientation:mixed;
-  min-width:26px;
-  max-width:26px;
-  text-align:left;
-  font-size:10px;
+  min-width:58px;
+  text-align:center;
+  font-size:11.5px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
 }
 table.heat thead th.acct-head{
   writing-mode:horizontal-tb;
@@ -185,8 +184,8 @@ table.heat tbody td{
   border-bottom:1px solid #f1f3f6;
   padding:0;
   text-align:center;
-  height:28px;
-  min-width:26px;
+  height:34px;
+  min-width:58px;
   cursor:pointer;
   position:relative;
 }
@@ -220,7 +219,8 @@ table.heat tbody tr.hidden{ display:none; }
 .cell-fill span{
   display:block;
   width:100%; height:100%;
-  line-height:28px;
+  line-height:34px;
+  font-size:12px;
 }
 
 /* Detail panel */
@@ -343,10 +343,10 @@ table.heat tbody tr.hidden{ display:none; }
 <div class="wire-top">
   <div class="wire-eyebrow">MediaHQ — Internal / PR Tracker</div>
   <h1 class="wire-title">Release Wire</h1>
-  <p class="wire-sub">Monthly release volume per active account, last 3 years. Use it to spot each account's natural rhythm — quiet stretches worth reactivating, or busy stretches worth building on.</p>
+  <p class="wire-sub">Average releases sent per calendar month, per active account, blended across the last 3 years. Use it to spot each account's natural rhythm — quiet stretches worth reactivating, or busy stretches worth building on.</p>
   <div class="wire-stats">
     <div class="wire-stat"><b id="statAccounts">–</b><span>Active accounts</span></div>
-    <div class="wire-stat"><b id="statMonths">–</b><span>Months tracked</span></div>
+    <div class="wire-stat"><b id="statYears">3</b><span>Years blended</span></div>
     <div class="wire-stat"><b id="statTotal">–</b><span>Releases sent</span></div>
   </div>
 </div>
@@ -420,6 +420,7 @@ accounts.forEach(acc=>{
     buckets[moIdx].n += 1;
   });
   acc.calAvgs = buckets.map(b=> b.n ? b.sum/b.n : 0);
+  acc.rowMaxCal = Math.max(...acc.calAvgs, 0.01);
   const mean = acc.calAvgs.reduce((a,b)=>a+b,0)/12;
   const variance = acc.calAvgs.reduce((a,b)=>a+Math.pow(b-mean,2),0)/12;
   acc.seasonality = mean > 0 ? Math.sqrt(variance)/mean : 0;
@@ -427,7 +428,6 @@ accounts.forEach(acc=>{
 });
 
 document.getElementById('statAccounts').textContent = accounts.length;
-document.getElementById('statMonths').textContent = months.length;
 document.getElementById('statTotal').textContent = accounts.reduce((a,b)=>a+b.total,0).toLocaleString();
 
 // legend swatches
@@ -451,13 +451,13 @@ function textColorFor(t){
   return t > 0.55 ? '#ffffff' : '#3b4457';
 }
 
-// Build header row
+// Build header row — 12 calendar months
 const headRow = document.getElementById('headRow');
-months.forEach(m=>{
+for(let i=0;i<12;i++){
   const th = document.createElement('th');
-  th.textContent = monthLabel(m);
+  th.textContent = calMonthName(i).slice(0,3);
   headRow.appendChild(th);
-});
+}
 
 let currentSort = 'name';
 let currentFilter = '';
@@ -486,16 +486,16 @@ function renderTable(){
     nameTd.innerHTML = acc.name + '<span class="total-tag">' + acc.total.toLocaleString() + '</span>';
     tr.appendChild(nameTd);
 
-    acc.counts.forEach(c=>{
+    acc.calAvgs.forEach((v,i)=>{
       const td = document.createElement('td');
       td.className = 'cell-fill';
-      const t = acc.rowMax ? c/acc.rowMax : 0;
+      const t = acc.rowMaxCal ? v/acc.rowMaxCal : 0;
       td.style.background = tealShade(t);
       const span = document.createElement('span');
       span.style.color = textColorFor(t);
-      span.textContent = c > 0 ? c : '';
+      span.textContent = v > 0 ? v.toFixed(1) : '';
       td.appendChild(span);
-      td.title = acc.name + ' — ' + c + ' release' + (c===1?'':'s');
+      td.title = acc.name + ' — ' + calMonthName(i) + ' avg: ' + v.toFixed(1) + '/mo';
       tr.appendChild(td);
     });
 
@@ -535,10 +535,10 @@ function openPanel(acc){
   `;
   body.appendChild(statRow);
 
-  // chart
+  // primary chart: calendar-month averages (matches the heatmap)
   const chartLabel = document.createElement('p');
   chartLabel.className = 'section-label';
-  chartLabel.textContent = 'Monthly volume, last 3 years';
+  chartLabel.textContent = 'Average per calendar month, blended across 3 years';
   body.appendChild(chartLabel);
 
   const chartCard = document.createElement('div');
@@ -552,20 +552,56 @@ function openPanel(acc){
   chartInstance = new Chart(canvas, {
     type:'bar',
     data:{
-      labels: months.map(monthLabel),
+      labels: Array.from({length:12}, (_,i)=>calMonthName(i).slice(0,3)),
       datasets:[{
-        data: acc.counts,
+        data: acc.calAvgs.map(v=>Number(v.toFixed(2))),
         backgroundColor: '#12756f',
-        borderRadius: 2,
-        maxBarThickness: 14
+        borderRadius: 3,
+        maxBarThickness: 34
       }]
     },
     options:{
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: (ctx)=> ctx.parsed.y + ' release' + (ctx.parsed.y===1?'':'s') } } },
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: (ctx)=> '~' + ctx.parsed.y + ' / month' } } },
       scales:{
-        x:{ ticks:{ font:{size:9, family:'IBM Plex Mono'}, maxRotation:90, minRotation:90 }, grid:{display:false} },
+        x:{ ticks:{ font:{size:11, family:'IBM Plex Mono'} }, grid:{display:false} },
         y:{ beginAtZero:true, ticks:{ precision:0, font:{size:10} }, grid:{ color:'#eef1f5' } }
       }
+    }
+  });
+
+  // secondary: raw 3-year trend, collapsed by default
+  const details = document.createElement('details');
+  details.style.marginBottom = '26px';
+  const summary = document.createElement('summary');
+  summary.style.cssText = 'cursor:pointer;font-family:IBM Plex Mono, monospace;font-size:11.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;padding:4px 0;';
+  summary.textContent = 'Show raw month-by-month history';
+  details.appendChild(summary);
+  const rawCard = document.createElement('div');
+  rawCard.className = 'chart-card';
+  rawCard.style.marginTop = '10px';
+  const rawCanvas = document.createElement('canvas');
+  rawCanvas.height = 110;
+  rawCard.appendChild(rawCanvas);
+  details.appendChild(rawCard);
+  body.appendChild(details);
+
+  let rawChartInstance = null;
+  details.addEventListener('toggle', ()=>{
+    if(details.open && !rawChartInstance){
+      rawChartInstance = new Chart(rawCanvas, {
+        type:'bar',
+        data:{
+          labels: months.map(monthLabel),
+          datasets:[{ data: acc.counts, backgroundColor: '#8a94a8', borderRadius: 2, maxBarThickness: 14 }]
+        },
+        options:{
+          plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: (ctx)=> ctx.parsed.y + ' release' + (ctx.parsed.y===1?'':'s') } } },
+          scales:{
+            x:{ ticks:{ font:{size:9, family:'IBM Plex Mono'}, maxRotation:90, minRotation:90 }, grid:{display:false} },
+            y:{ beginAtZero:true, ticks:{ precision:0, font:{size:10} }, grid:{ color:'#eef1f5' } }
+          }
+        }
+      });
     }
   });
 
