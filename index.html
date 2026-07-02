@@ -343,7 +343,7 @@ table.heat tbody tr.hidden{ display:none; }
 <div class="wire-top">
   <div class="wire-eyebrow">MediaHQ — Internal / PR Tracker</div>
   <h1 class="wire-title">Release Wire</h1>
-  <p class="wire-sub">Average releases sent per calendar month, per active account, blended across the last 3 years. Use it to spot each account's natural rhythm — quiet stretches worth reactivating, or busy stretches worth building on.</p>
+  <p class="wire-sub">Average releases sent per calendar month, calculated across each account's active lifetime (up to the last three years). Newer accounts are averaged only over the months they have been active.</p>
   <div class="wire-stats">
     <div class="wire-stat"><b id="statAccounts">–</b><span>Active accounts</span></div>
     <div class="wire-stat"><b id="statYears">3</b><span>Years blended</span></div>
@@ -538,7 +538,7 @@ function openPanel(acc){
   // primary chart: calendar-month averages (matches the heatmap)
   const chartLabel = document.createElement('p');
   chartLabel.className = 'section-label';
-  chartLabel.textContent = 'Average per calendar month, blended across 3 years';
+  chartLabel.textContent = 'Average per calendar month across active lifetime';
   body.appendChild(chartLabel);
  
   const chartCard = document.createElement('div');
